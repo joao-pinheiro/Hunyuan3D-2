@@ -42,12 +42,13 @@ class HunyuanDiTPipeline:
     def __init__(
         self,
         model_path="Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled",
-        device='cuda'
+        device='cuda',
+        dtype=torch.float16
     ):
         self.device = device
         self.pipe = AutoPipelineForText2Image.from_pretrained(
             model_path,
-            torch_dtype=torch.float16,
+            torch_dtype=dtype,
             enable_pag=True,
             pag_applied_layers=["blocks.(16|17|18|19)"]
         ).to(device)
