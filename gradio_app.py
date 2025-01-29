@@ -92,6 +92,7 @@ def _gen_shape(
     seed=1234,
     octree_resolution=256,
     check_box_rembg=False,
+    model_name=None
 ):
     if caption: print('prompt is', caption)
     save_folder = gen_save_folder()
@@ -112,7 +113,7 @@ def _gen_shape(
     print(image.mode)
     if check_box_rembg or image.mode == "RGB":
         start_time = time.time()
-        image = rmbg_worker(image.convert('RGB'))
+        image = rmbg_worker(image.convert('RGB'), model_name)
         time_meta['rembg'] = time.time() - start_time
 
     image.save(os.path.join(save_folder, 'rembg.png'))
@@ -184,6 +185,7 @@ def shape_generation(
     seed=1234,
     octree_resolution=256,
     check_box_rembg=False,
+    model_name=None
 ):
     mesh, image, save_folder = _gen_shape(
         caption,
@@ -192,7 +194,8 @@ def shape_generation(
         guidance_scale=guidance_scale,
         seed=seed,
         octree_resolution=octree_resolution,
-        check_box_rembg=check_box_rembg
+        check_box_rembg=check_box_rembg,
+        model_name=model_name
     )
 
     path = export_mesh(mesh, save_folder, textured=False)
@@ -219,6 +222,9 @@ def build_app():
       <a href="#">Technical Report</a> &ensp;
       <a href="https://huggingface.co/Tencent/Hunyuan3D-2"> Models</a> &ensp;
     </div>
+    <div align="center">
+        <a href="https://github.com/danielgatis/rembg?tab=readme-ov-file#models">Available background removal models</a>
+    </div>
     """
 
     with gr.Blocks(theme=gr.themes.Base(), title='Hunyuan-3D-2.0') as demo:
@@ -229,6 +235,9 @@ def build_app():
                 with gr.Tabs() as tabs_prompt:
                     with gr.Tab('Image Prompt', id='tab_img_prompt') as tab_ip:
                         image = gr.Image(label='Image', type='pil', image_mode='RGBA', height=290)
+                        with gr.Row():
+                            model_name = gr.Dropdown(rmbg_worker.model_names(),value=rmbg_worker.default_model, label='Background removal algorithm')
+
                         with gr.Row():
                             check_box_rembg = gr.Checkbox(value=True, label='Remove Background')
 
@@ -300,6 +309,7 @@ def build_app():
                 seed,
                 octree_resolution,
                 check_box_rembg,
+                model_name,
             ],
             outputs=[file_out, html_output1]
         ).then(
@@ -335,6 +345,7 @@ if __name__ == '__main__':
     parser.add_argument('--host', type=str, default='0.0.0.0')
     parser.add_argument('--cache-path', type=str, default='gradio_cache')
     parser.add_argument('--enable_t23d', action='store_true')
+    parser.add_argument('--use-base-', action='store_true')
     args = parser.parse_args()
 
     SAVE_DIR = args.cache_path
@@ -370,7 +381,6 @@ if __name__ == '__main__':
     HAS_T2I = False
     if args.enable_t23d:
         from hy3dgen.text2image import HunyuanDiTPipeline
-
         t2i_worker = HunyuanDiTPipeline('Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled', device=cuda_device, dtype=dtorch_type)
         HAS_T2I = True
 

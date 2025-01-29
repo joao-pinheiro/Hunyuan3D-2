@@ -25,12 +25,17 @@
 
 from PIL import Image
 from rembg import remove, new_session
-
+from rembg.sessions import sessions_names
 
 class BackgroundRemover():
     def __init__(self):
-        self.session = new_session()
+        self.default_model="u2net"
 
-    def __call__(self, image: Image.Image):
-        output = remove(image, session=self.session, bgcolor=[255, 255, 255, 0])
+    def model_names(self) -> list:
+        return sessions_names
+
+    def __call__(self, image: Image.Image, model_name=None):
+        if not model_name:
+            model_name = self.default_model
+        output = remove(image, session=new_session(model_name), bgcolor=[255, 255, 255, 0])
         return output
